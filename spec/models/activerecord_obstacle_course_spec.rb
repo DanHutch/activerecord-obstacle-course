@@ -435,7 +435,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # -----------------------------------------------------------
 
     # ------------------ Improved Solution ----------------------
-    orders = Order.joins(:order_items).where('order_items.item_id = ?', item_4.id)
+    orders = Order.joins(:order_items).where('item_id = ?', item_4.id)
     # -----------------------------------------------------------
 
     # Expectation
@@ -452,7 +452,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # -----------------------------------------------------------
 
     # ------------------ Improved Solution ----------------------
-    orders = Order.joins(:items).where(user_id: 2).where('order_items.item_id = ?', item_4.id)
+    orders = Order.joins(:order_items).where('user_id = ?', 2).where('item_id = ?', item_4.id)
     # -----------------------------------------------------------
 
     # Expectation
@@ -474,7 +474,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # ------------------------------------------------------------
 
     # ------------------ ActiveRecord Solution ----------------------
-    ordered_items = Item.includes(:orders).joins(:orders)
+    ordered_items = Item.joins(:orders).includes(:orders)
   # ---------------------------------------------------------------
 
     # Expectations
@@ -506,7 +506,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # ordered_items_names = ordered_items.map(&:name)
     # ------------------------------------------------------------
 
-    ordered_items_names = Item.includes(:orders).joins(:orders).distinct.pluck(:name)
+    ordered_items_names = Item.joins(:orders).includes(:orders).distinct.pluck(:name)
 
     # Solution goes here
     # When you find a solution, experiment with adjusting your method chaining
@@ -518,7 +518,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     expect(ordered_items_names).to_not include(unordered_items)
   end
 
-  xit '27. returns a table of information for all users orders' do
+  it '27. returns a table of information for all users orders' do
     custom_results = [user_3, user_1, user_2]
 
     # using a single ActiveRecord call, fetch a joined object that mimics the
@@ -530,7 +530,11 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # Sal        |         5
 
     # ------------------ ActiveRecord Solution ----------------------
-    # custom_results =
+
+    custom_results = Order.joins(:user)
+                          .group(:user_id)
+                          .order('name')
+                          .select('users.name as name', 'count(*) as total_order_count')
     # ---------------------------------------------------------------
 
     expect(custom_results[0].name).to eq(user_3.name)
@@ -541,7 +545,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     expect(custom_results[2].total_order_count).to eq(5)
   end
 
-  xit '28. returns a table of information for all users items' do
+  it '28. returns a table of information for all users items' do
     custom_results = [user_2, user_1, user_3]
 
     # using a single ActiveRecord call, fetch a joined object that mimics the
@@ -553,7 +557,13 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # Dione      |         20
 
     # ------------------ ActiveRecord Solution ----------------------
-    # custom_results =
+   
+    custom_results = User.joins(:items)
+                         .group(:user_id)
+                         .order(name: :desc)
+                         .select('users.name as name', 'count(items.id) as total_item_count') 
+
+
     # ---------------------------------------------------------------
 
     expect(custom_results[0].name).to eq(user_2.name)
@@ -564,7 +574,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     expect(custom_results[2].total_item_count).to eq(20)
   end
 
-  xit '29. returns a table of information for all users orders and item counts' do
+  it '29. returns a table of information for all users orders and item counts' do
     # using a single ActiveRecord call, fetch a joined object that mimics the
     # following table of information:
     # --------------------------------------------------------------------------
@@ -599,7 +609,11 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     # how will you turn this into the proper ActiveRecord commands?
 
     # ------------------ ActiveRecord Solution ----------------------
-    # data = []
+    
+    data = User.joins(:items)
+               .group(:order_id)
+               .order('users.name DESC')
+               .select('users.name as user_name',:order_id, 'count(item_id) as item_count')
     # ---------------------------------------------------------------
 
 
@@ -614,7 +628,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     expect(data[12].item_count).to eq(4)
   end
 
-  xit '30. returns the names of items that have been ordered without n+1 queries' do
+  it '30. returns the names of items that have been ordered without n+1 queries' do
     # What is an n+1 query?
     # This video is older, but the concepts explained are still relevant:
     # http://railscasts.com/episodes/372-bullet
@@ -625,7 +639,7 @@ items_for_user_3_third_order = Order.where('user_id = ?', 3).third.items.pluck(:
     Bullet.start_request
 
     # ------------------------------------------------------
-    orders = Order.all # Edit only this line
+    orders = Order.includes(:order_items, :items)
     # ------------------------------------------------------
 
     # Do not edit below this line
